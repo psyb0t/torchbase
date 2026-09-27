@@ -15,6 +15,7 @@ jobs:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     permissions:
       contents: read
+      security-events: write # required by the reusable code workflow
     uses: psyb0t/reusable-github-workflows/.github/workflows/code-workflow.yml@master
     with:
       lint_command: "make lint"
