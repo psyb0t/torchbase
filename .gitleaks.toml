@@ -1,0 +1,18 @@
+title = "torchbase secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Gitignored local state and generated scan output"
+paths = [
+  '''(^|/)\.env$''',
+  '''(^|/)\.env\.local$''',
+  '''(^|/)\.research_files(?:/|$)''',
+  '''(^|/)\.testing(?:/|$)''',
+  '''(^|/)\.agent_notes(?:/|$)''',
+  '''(^|/)\.agent_knowledge(?:/|$)''',
+  '''(^|/)coverage\.txt$''',
+  '''(^|/)git-update\.sh$''',
+  '''(^|/)PLAN\.md$''',
+]
