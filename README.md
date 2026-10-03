@@ -11,10 +11,12 @@ Torchbase publishes strict Python, Torch, and CUDA tuples. Pick the exact tuple 
 
 ## Use it
 
-Published tags include the Torchbase release version. Replace `<release>` with a real version such as `v0.2.0`.
+Published tags include the Torchbase release version. Replace `<release>` with `0.1.1`, for example `psyb0t/torchbase:py3.12-torch2.5.1-v0.1.1-cu124`.
 
 | Image | Python | PyTorch | CUDA |
 | --- | --- | --- | --- |
+| `psyb0t/torchbase:py3.12-torch2.5.1-v<release>-cpu` | 3.12 | `2.5.1+cpu` | None |
+| `psyb0t/torchbase:py3.12-torch2.5.1-v<release>-cu124` | 3.12 | `2.5.1+cu124` | 12.4 |
 | `psyb0t/torchbase:py3.12-torch2.14-v<release>-cpu` | 3.12 | `2.14.0+cpu` | None |
 | `psyb0t/torchbase:py3.12-torch2.14-v<release>-cu126` | 3.12 | `2.14.0+cu126` | 12.6 |
 | `psyb0t/torchbase:py3.12-torch2.14-v<release>-cu130` | 3.12 | `2.14.0+cu130` | 13.0 |
@@ -35,6 +37,10 @@ USER 1000:1000
 ```
 
 Torchbase owns Python, Torch, CUDA, and compiler bits. Your image owns its provider packages, model files, API, and tests.
+
+The Torch 2.5.1 tuples preserve Audiolla's current Torch version. They do not include Torchaudio. Install Torchaudio 2.5.1 from the matching `cpu` or `cu124` wheel index in the derived image, and keep its dependency install layer before copying application code. The `cu124` tuple reports CUDA 12.4 from Torch; its OS base is the same pinned NVIDIA CUDA 12.6.3 runtime used by Audiolla. These compatibility images retain an old Torch release and are not a recommendation to use it for new applications.
+
+Torch 2.5.1 is affected by [CVE-2025-32434](https://github.com/pytorch/pytorch/security/advisories/GHSA-53q9-r3pm-6pq6): loading a malicious checkpoint can execute code even with `weights_only=True`. Treat model checkpoints as executable code and use only trusted, verified weights. This compatibility tuple does not fix that advisory.
 
 CUDA 12.6 and CUDA 13.0 images need NVIDIA Container Toolkit at runtime. CUDA 12.x needs an NVIDIA driver from the 525 series or newer. CUDA 13.0 needs driver 580 or newer. Python 3.12 CUDA images use NVIDIA CUDA runtime bases. Python 3.13 CUDA images use the CUDA user-space libraries that ship with the hash-locked PyTorch wheel, then receive the host driver through NVIDIA Container Toolkit.
 
@@ -68,6 +74,13 @@ make build-test TUPLE=py3.12-torch2.14-cpu
 ```
 
 `make ci-targets` prints the exact matrix consumed by the release workflow.
+
+Build only the Audiolla-compatible tuples:
+
+```bash
+make build-test TUPLE=py3.12-torch2.5.1-cpu
+make build-test-cuda-gpu TUPLE=py3.12-torch2.5.1-cu124
+```
 
 ## Add a tuple
 

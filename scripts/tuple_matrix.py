@@ -279,7 +279,9 @@ def docker_verify(root: Path, specs: tuple[TupleSpec, ...], gpu: bool) -> None:
     for spec in specs:
         gpu_arguments = ["--gpus", "all"] if gpu else []
         gpu_assertion = (
-            "assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))"
+            "assert torch.cuda.is_available(); "
+            "assert torch.ones(4, device='cuda').sum().item() == 4; "
+            "print(torch.cuda.get_device_name(0))"
             if gpu
             else ""
         )
@@ -289,6 +291,8 @@ def docker_verify(root: Path, specs: tuple[TupleSpec, ...], gpu: bool) -> None:
             f"assert f'{{sys.version_info.major}}.{{sys.version_info.minor}}' == {spec.python_version!r}; "
             f"assert torch.__version__ == {spec.torch_version!r}; "
             f"assert (torch.version.cuda or 'none') == {spec.cuda_version!r}; "
+            "assert torch.ones(4).sum().item() == 4; "
+            "print(torch.__version__, torch.version.cuda); "
             f"{gpu_assertion}"
         )
         command = [

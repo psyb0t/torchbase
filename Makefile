@@ -45,8 +45,8 @@ build-test: build ## Build and verify the selected tuple or tuple set
 	python scripts/tuple_matrix.py docker-verify $(TUPLE)
 
 build-test-cuda-gpu: ## Build and GPU-verify every selected CUDA tuple
-	python scripts/tuple_matrix.py docker-build cuda
-	python scripts/tuple_matrix.py docker-verify --gpu cuda
+	python scripts/tuple_matrix.py docker-build $(if $(filter all,$(TUPLE)),cuda,$(TUPLE))
+	python scripts/tuple_matrix.py docker-verify --gpu $(if $(filter all,$(TUPLE)),cuda,$(TUPLE))
 
 ci-targets: dev-image ## Print the reusable Docker workflow matrix JSON
 	$(DEV_RUN) python scripts/tuple_matrix.py ci-targets

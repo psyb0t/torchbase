@@ -12,6 +12,8 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPOSITORY_ROOT / "scripts" / "tuple_matrix.py"
 SHA256_DIGEST = "a" * 64
 EXPECTED_TUPLE_IDS = {
+    "py3.12-torch2.5.1-cpu",
+    "py3.12-torch2.5.1-cu124",
     "py3.12-torch2.14-cpu",
     "py3.12-torch2.14-cu126",
     "py3.12-torch2.14-cu130",
@@ -101,6 +103,8 @@ class TupleMatrixCommandTests(unittest.TestCase):
         self.assertEqual(
             image_shapes,
             {
+                "py3.12-torch2.5.1-latest-cpu",
+                "py3.12-torch2.5.1-latest-cu124",
                 "py3.12-torch2.14-latest-cpu",
                 "py3.12-torch2.14-latest-cu126",
                 "py3.12-torch2.14-latest-cu130",
@@ -131,6 +135,34 @@ class TupleMatrixCommandTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(set(result.stdout.splitlines()), EXPECTED_TUPLE_IDS)
+
+    def test_audiolla_tuples_select_matching_torch_and_backend(self) -> None:
+        for backend, expected_cuda in (("cpu", "none"), ("cu124", "12.4")):
+            with (
+                self.subTest(backend=backend),
+                tempfile.TemporaryDirectory() as temporary_directory,
+            ):
+                temporary_root = Path(temporary_directory)
+                command_log = temporary_root / "docker-command.log"
+                write_command_stub(temporary_root, "docker")
+                result = run_matrix(
+                    "docker-build",
+                    f"py3.12-torch2.5.1-{backend}",
+                    environment={
+                        "COMMAND_LOG_PATH": str(command_log),
+                        "PATH": f"{temporary_root}:{os.environ['PATH']}",
+                    },
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                invocation = command_log.read_text(encoding="utf-8")
+                self.assertEqual(invocation.splitlines().count("build"), 1)
+                self.assertIn(f"TORCH_BACKEND={backend}", invocation)
+                self.assertIn(f"EXPECTED_TORCH_VERSION=2.5.1+{backend}", invocation)
+                self.assertIn(f"EXPECTED_CUDA_VERSION={expected_cuda}", invocation)
+                self.assertIn(
+                    f"REQUIREMENTS_FILE=requirements-py312-torch251-{backend}.txt",
+                    invocation,
+                )
 
     def test_unknown_tuple_fails_before_a_docker_command_can_run(self) -> None:
         result = run_matrix("docker-build", "does-not-exist")

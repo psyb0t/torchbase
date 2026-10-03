@@ -38,3 +38,5 @@ pyrightconfig.json
 
 # Build state
 git-update.sh
+__pycache__/
+*.pyc
