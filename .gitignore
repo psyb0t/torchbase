@@ -38,5 +38,6 @@ pyrightconfig.json
 
 # Build state
 git-update.sh
+git-update.sh.debot
 __pycache__/
 *.pyc
