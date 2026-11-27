@@ -2,6 +2,14 @@
 
 All notable changes per release. Versions follow [SemVer](https://semver.org/).
 
+## v0.1.3
+
+v0.1.2 was tagged but never released: its checks could not build the development image, so no images were promoted. This release carries its pipeline change.
+
+- Installs Pyright with its bundled Node.js wheel (`pyright[nodejs]`). The development image no longer downloads Node.js through nodeenv, which failed on a Node.js pre-release version string.
+- Release tags no longer rebuild or retest. A push to main builds every tuple image and also tags it `sha-<commit>`. A `v*` tag waits for that commit's main run to succeed, promotes the same image digests to the release tags, and then cuts the GitHub release from the tag notes.
+- Pull requests run lint and tests only.
+
 ## v0.1.2
 
 - Release tags no longer rebuild or retest. A push to main builds every tuple image and also tags it `sha-<commit>`. A `v*` tag waits for that commit's main run to succeed, promotes the same image digests to the release tags, and then cuts the GitHub release from the tag notes.
