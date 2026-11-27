@@ -1,5 +1,9 @@
 name: pipeline
 
+# A push to main lints and tests, then builds every tuple image and publishes
+# :<tuple>latest and :<tuple>sha-<commit>. A v* tag never rebuilds: it waits
+# for that commit's main run to succeed, promotes the same image digests to the
+# release tags, then cuts the GitHub release.
 on:
   push:
     branches: [main]
@@ -12,7 +16,7 @@ permissions: {}
 
 jobs:
   code:
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    if: "!startsWith(github.ref, 'refs/tags/') && (github.event_name != 'pull_request' || !github.event.pull_request.draft)"
     permissions:
       contents: read
       security-events: write # required by the reusable code workflow
@@ -21,8 +25,9 @@ jobs:
       lint_command: "make lint"
       test_command: "make test"
 
+  # The build targets come from tuples.json. Both the main build and the tag
+  # promotion need the same list, so this job runs on every event.
   tuple-matrix:
-    needs: [code]
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     permissions:
@@ -36,17 +41,19 @@ jobs:
         id: targets
         run: printf 'build_targets=%s\n' "$(python scripts/tuple_matrix.py ci-targets)" >> "$GITHUB_OUTPUT"
 
+  # Images only for pushes to main. Pull requests stop after the code job.
   docker:
-    needs: [tuple-matrix]
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    needs: [code, tuple-matrix]
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     permissions:
-      contents: write
-      security-events: write
+      contents: write # the called workflow checks it up front for its release job
+      security-events: write # upload the Grype SARIF to the Security tab
     uses: psyb0t/reusable-github-workflows/.github/workflows/docker-image-workflow.yml@master
     with:
       repository_name: psyb0t/torchbase
       target_platforms: linux/amd64
       build_targets: ${{ needs.tuple-matrix.outputs.build_targets }}
+      push_sha_tag: true
       scan_severity: high
       scan_fail_build: false
       dockerhub_private: false
@@ -56,9 +63,46 @@ jobs:
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
 
+  # A tag waits for the main run of the tagged commit. It fails when that run
+  # failed or when the commit was never pushed to main.
+  wait:
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      actions: read
+    uses: psyb0t/reusable-github-workflows/.github/workflows/wait-for-default-branch.yml@master
+
+  # Re-tags every tuple's sha-<commit> image as its release tag, by digest,
+  # without rebuilding.
+  docker-promote:
+    needs: [wait, tuple-matrix]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write # the called workflow checks it up front for its release job
+      security-events: write
+    uses: psyb0t/reusable-github-workflows/.github/workflows/docker-image-workflow.yml@master
+    with:
+      repository_name: psyb0t/torchbase
+      target_platforms: linux/amd64
+      build_targets: ${{ needs.tuple-matrix.outputs.build_targets }}
+      promote_on_tag: true
+      # The release job below cuts the release from the tag's own notes.
+      create_release: false
+      scan_enabled: false
+      sync_description: false
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  release:
+    needs: [docker-promote]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    uses: psyb0t/reusable-github-workflows/.github/workflows/release-workflow.yml@master
+
   badges:
-    needs: [code]
-    if: github.ref_name == github.event.repository.default_branch || startsWith(github.ref, 'refs/tags/')
+    needs: [code, release]
+    if: "always() && ((github.ref_name == github.event.repository.default_branch && needs.code.result == 'success') || (startsWith(github.ref, 'refs/tags/') && needs.release.result == 'success'))"
     permissions:
       contents: write
     uses: psyb0t/reusable-github-workflows/.github/workflows/create-badges.yml@master

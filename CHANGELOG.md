@@ -2,6 +2,11 @@
 
 All notable changes per release. Versions follow [SemVer](https://semver.org/).
 
+## v0.1.2
+
+- Release tags no longer rebuild or retest. A push to main builds every tuple image and also tags it `sha-<commit>`. A `v*` tag waits for that commit's main run to succeed, promotes the same image digests to the release tags, and then cuts the GitHub release from the tag notes.
+- Pull requests run lint and tests only.
+
 ## v0.1.1
 
 - Add Python 3.12, Torch 2.5.1 CPU and CUDA 12.4 base tuples for Audiolla, with separate hash-locked dependencies and image tag shapes.

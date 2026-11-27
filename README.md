@@ -11,7 +11,7 @@ Torchbase publishes strict Python, Torch, and CUDA tuples. Pick the exact tuple 
 
 ## Use it
 
-Published tags include the Torchbase release version. Replace `<release>` with `0.1.1`, for example `psyb0t/torchbase:py3.12-torch2.5.1-v0.1.1-cu124`.
+Published tags include the Torchbase release version. Replace `<release>` with `0.1.2`, for example `psyb0t/torchbase:py3.12-torch2.5.1-v0.1.2-cu124`.
 
 | Image | Python | PyTorch | CUDA |
 | --- | --- | --- | --- |
